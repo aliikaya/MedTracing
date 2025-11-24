@@ -1,0 +1,30 @@
+package com.madtracking.app.data.local.dao
+
+import androidx.room.*
+import com.madtracking.app.data.local.entity.MedicationEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface MedicationDao {
+    @Insert
+    suspend fun insert(medication: MedicationEntity): Long
+
+    @Update
+    suspend fun update(medication: MedicationEntity)
+
+    @Query("SELECT * FROM medications WHERE profileId = :profileId AND isActive = 1 ORDER BY createdAt DESC")
+    fun getMedicationsForProfile(profileId: Long): Flow<List<MedicationEntity>>
+
+    @Query("SELECT * FROM medications WHERE id = :id")
+    fun getMedicationById(id: Long): Flow<MedicationEntity?>
+
+    @Query("SELECT * FROM medications WHERE isActive = 1 ORDER BY createdAt DESC")
+    fun getAllActiveMedications(): Flow<List<MedicationEntity>>
+
+    @Delete
+    suspend fun delete(medication: MedicationEntity)
+
+    @Query("DELETE FROM medications WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}
+
