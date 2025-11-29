@@ -1,6 +1,7 @@
 package com.madtracking.app.presentation.today
 
 import com.madtracking.app.domain.model.IntakeStatus
+import com.madtracking.app.domain.model.MealRelation
 import java.time.LocalTime
 
 /**
@@ -14,7 +15,8 @@ data class TodayIntakeUi(
     val time: LocalTime,
     val status: IntakeStatus,
     val remainingDays: Int?, // null = süresiz
-    val isExpired: Boolean = false
+    val isExpired: Boolean = false,
+    val mealRelation: MealRelation = MealRelation.IRRELEVANT
 ) {
     /**
      * Kalan gün bilgisini kullanıcı dostu formatta döndürür.

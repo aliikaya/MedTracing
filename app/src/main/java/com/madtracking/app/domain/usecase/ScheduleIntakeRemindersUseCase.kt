@@ -79,7 +79,11 @@ class ScheduleIntakeRemindersUseCase @Inject constructor(
 
                 // Sadece PLANNED durumundaki Intake'ler için hatırlatma kur
                 if (intake.status == IntakeStatus.PLANNED) {
-                    reminderScheduler.scheduleIntakeReminder(intake, medication.name)
+                    reminderScheduler.scheduleIntakeReminder(
+                        intake = intake, 
+                        medicationName = medication.name,
+                        mealRelation = medication.mealRelation
+                    )
                 }
             }
             

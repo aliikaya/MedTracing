@@ -54,6 +54,10 @@ class AddMedicationViewModel @Inject constructor(
         _uiState.update { it.copy(notes = notes) }
     }
 
+    fun onMealRelationChange(mealRelation: MealRelation) {
+        _uiState.update { it.copy(mealRelation = mealRelation) }
+    }
+
     fun onIndefiniteChange(isIndefinite: Boolean) {
         _uiState.update { it.copy(isIndefinite = isIndefinite) }
     }
@@ -104,6 +108,7 @@ class AddMedicationViewModel @Inject constructor(
                     durationInDays = durationInDays,
                     isActive = true,
                     importance = state.importance,
+                    mealRelation = state.mealRelation,
                     notes = state.notes.ifBlank { null }
                 )
 

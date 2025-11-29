@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import com.madtracking.app.domain.model.Intake
 import com.madtracking.app.domain.model.IntakeStatus
+import com.madtracking.app.domain.model.MealRelation
 import com.madtracking.app.domain.scheduler.ReminderScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.ZoneId
@@ -30,9 +31,14 @@ class AlarmReminderScheduler @Inject constructor(
         const val EXTRA_MEDICATION_NAME = "medication_name"
         const val EXTRA_PROFILE_ID = "profile_id"
         const val EXTRA_PLANNED_TIME = "planned_time"
+        const val EXTRA_MEAL_RELATION = "meal_relation"
     }
 
-    override fun scheduleIntakeReminder(intake: Intake, medicationName: String) {
+    override fun scheduleIntakeReminder(
+        intake: Intake, 
+        medicationName: String,
+        mealRelation: MealRelation
+    ) {
         // Hatırlatıcılar kapalıysa çık
         if (!areRemindersEnabled()) return
 
@@ -52,6 +58,7 @@ class AlarmReminderScheduler @Inject constructor(
             putExtra(EXTRA_MEDICATION_NAME, medicationName)
             putExtra(EXTRA_PROFILE_ID, intake.profileId)
             putExtra(EXTRA_PLANNED_TIME, intake.plannedTime.toString())
+            putExtra(EXTRA_MEAL_RELATION, mealRelation.name)
         }
 
         val requestCode = getRequestCode(intake.id)

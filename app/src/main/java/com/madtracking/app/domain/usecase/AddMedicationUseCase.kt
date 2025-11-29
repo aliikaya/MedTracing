@@ -83,7 +83,8 @@ class AddMedicationUseCase @Inject constructor(
                 // Hatırlatıcı kur
                 reminderScheduler.scheduleIntakeReminder(
                     intake = intake.copy(id = intakeId),
-                    medicationName = medication.name
+                    medicationName = medication.name,
+                    mealRelation = medication.mealRelation
                 )
             }
             

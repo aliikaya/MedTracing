@@ -87,7 +87,8 @@ class TodayViewModel @Inject constructor(
             time = intake.plannedTime.toLocalTime(),
             status = intake.status,
             remainingDays = medication?.remainingDays(today),
-            isExpired = medication?.isExpired(today) ?: false
+            isExpired = medication?.isExpired(today) ?: false,
+            mealRelation = medication?.mealRelation ?: com.madtracking.app.domain.model.MealRelation.IRRELEVANT
         )
     }
 

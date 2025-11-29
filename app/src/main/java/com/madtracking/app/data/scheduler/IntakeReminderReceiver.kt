@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.madtracking.app.MainActivity
 import com.madtracking.app.R
+import com.madtracking.app.domain.model.MealRelation
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -30,6 +31,7 @@ class IntakeReminderReceiver : BroadcastReceiver() {
         val medicationName = intent.getStringExtra(AlarmReminderScheduler.EXTRA_MEDICATION_NAME) ?: "İlaç"
         val profileId = intent.getLongExtra(AlarmReminderScheduler.EXTRA_PROFILE_ID, -1)
         val plannedTimeStr = intent.getStringExtra(AlarmReminderScheduler.EXTRA_PLANNED_TIME)
+        val mealRelationStr = intent.getStringExtra(AlarmReminderScheduler.EXTRA_MEAL_RELATION)
 
         if (intakeId == -1L) return
 
@@ -40,6 +42,10 @@ class IntakeReminderReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             ""
         }
+        
+        // Kullanım talimatını parse et
+        val mealRelation = MealRelation.fromString(mealRelationStr)
+        val mealRelationText = mealRelation.toDisplayText()
 
         // Notification channel oluştur (Android 8+)
         createNotificationChannel(context)
@@ -58,11 +64,18 @@ class IntakeReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Bildirim içeriğini oluştur (talimat varsa ekle)
+        val contentText = if (mealRelationText.isNotEmpty()) {
+            "$timeDisplay - $mealRelationText"
+        } else {
+            "$timeDisplay - İlacı almayı unutma!"
+        }
+
         // Bildirimi oluştur
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle("💊 $medicationName")
-            .setContentText("$timeDisplay - İlacı almayı unutma!")
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)

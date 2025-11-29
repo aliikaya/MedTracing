@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.madtracking.app.domain.model.IntakeStatus
+import com.madtracking.app.domain.model.MealRelation
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -215,6 +216,14 @@ private fun IntakeCard(
                                 }
                             )
                         }
+                    }
+                    // Kullanım talimatı göster (IRRELEVANT değilse)
+                    if (item.mealRelation != MealRelation.IRRELEVANT) {
+                        Text(
+                            text = "📋 ${item.mealRelation.toDisplayText()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
                     }
                 }
                 

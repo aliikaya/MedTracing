@@ -17,6 +17,7 @@ fun MedicationEntity.toDomain(): Medication {
         durationInDays = durationInDays,
         isActive = isActive,
         importance = MedicationImportance.valueOf(importance),
+        mealRelation = MealRelation.fromString(mealRelation),
         notes = notes,
         stockCount = stockCount,
         createdAt = createdAt
@@ -36,6 +37,7 @@ fun Medication.toEntity(): MedicationEntity {
         durationInDays = durationInDays,
         isActive = isActive,
         importance = importance.name,
+        mealRelation = mealRelation.name,
         notes = notes,
         stockCount = stockCount,
         createdAt = createdAt

@@ -1,6 +1,7 @@
 package com.madtracking.app.domain.scheduler
 
 import com.madtracking.app.domain.model.Intake
+import com.madtracking.app.domain.model.MealRelation
 
 /**
  * İlaç hatırlatıcılarını planlamak için soyut arayüz.
@@ -12,7 +13,11 @@ interface ReminderScheduler {
      * Belirli bir Intake için hatırlatma kurar.
      * plannedTime'a göre alarm ayarlar.
      */
-    fun scheduleIntakeReminder(intake: Intake, medicationName: String)
+    fun scheduleIntakeReminder(
+        intake: Intake, 
+        medicationName: String,
+        mealRelation: MealRelation = MealRelation.IRRELEVANT
+    )
     
     /**
      * Belirli bir Intake'in hatırlatıcısını iptal eder.

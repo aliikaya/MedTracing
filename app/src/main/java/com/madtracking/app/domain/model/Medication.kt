@@ -25,6 +25,7 @@ data class Medication(
     val durationInDays: Int? = null, // Tedavi süresi (gün), null = süresiz
     val isActive: Boolean = true,
     val importance: MedicationImportance = MedicationImportance.REGULAR,
+    val mealRelation: MealRelation = MealRelation.IRRELEVANT, // Kullanım talimatı
     val notes: String? = null,
     val stockCount: Int? = null,
     val createdAt: Long = System.currentTimeMillis()

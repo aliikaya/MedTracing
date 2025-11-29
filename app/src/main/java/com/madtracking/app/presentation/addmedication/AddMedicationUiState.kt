@@ -1,6 +1,7 @@
 package com.madtracking.app.presentation.addmedication
 
 import com.madtracking.app.domain.model.DosageUnit
+import com.madtracking.app.domain.model.MealRelation
 import com.madtracking.app.domain.model.MedicationForm
 import com.madtracking.app.domain.model.MedicationImportance
 import java.time.LocalDate
@@ -13,6 +14,7 @@ data class AddMedicationUiState(
     val dosageUnit: DosageUnit = DosageUnit.TABLET,
     val timesInput: String = "08:00,20:00", // Virgülle ayrılmış saatler
     val importance: MedicationImportance = MedicationImportance.REGULAR,
+    val mealRelation: MealRelation = MealRelation.IRRELEVANT, // Kullanım talimatı
     val notes: String = "",
     // Duration fields
     val isIndefinite: Boolean = true, // Süresiz mi?

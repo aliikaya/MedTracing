@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.madtracking.app.domain.model.DosageUnit
+import com.madtracking.app.domain.model.MealRelation
 import com.madtracking.app.domain.model.MedicationForm
 import com.madtracking.app.domain.model.MedicationImportance
 
@@ -128,6 +129,12 @@ fun AddMedicationScreen(
                 ImportanceDropdown(
                     selectedImportance = uiState.importance,
                     onImportanceSelected = { viewModel.onImportanceChange(it) }
+                )
+
+                // Kullanım talimatı
+                MealRelationSection(
+                    selectedMealRelation = uiState.mealRelation,
+                    onMealRelationSelected = { viewModel.onMealRelationChange(it) }
                 )
 
                 // Notlar
@@ -453,4 +460,47 @@ private fun MedicationImportance.toDisplayName(): String = when (this) {
     MedicationImportance.CRITICAL -> "🔴 Kritik"
     MedicationImportance.REGULAR -> "🟡 Normal"
     MedicationImportance.OPTIONAL -> "🟢 Opsiyonel"
+}
+
+@Composable
+private fun MealRelationSection(
+    selectedMealRelation: MealRelation,
+    onMealRelationSelected: (MealRelation) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Kullanım Talimatı",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            MealRelation.entries.forEach { relation ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedMealRelation == relation,
+                        onClick = { onMealRelationSelected(relation) }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = relation.toShortDisplayText(),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+    }
 }

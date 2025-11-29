@@ -19,7 +19,7 @@ import com.madtracking.app.data.local.entity.ProfileEntity
         MedicationEntity::class,
         IntakeEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -45,9 +45,17 @@ abstract class MedTrackDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from version 5 to 6: Add mealRelation column
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medications ADD COLUMN mealRelation TEXT NOT NULL DEFAULT 'IRRELEVANT'")
+            }
+        }
+
         fun getMigrations(): Array<Migration> = arrayOf(
             MIGRATION_1_2,
-            MIGRATION_2_3
+            MIGRATION_2_3,
+            MIGRATION_5_6
         )
     }
 }

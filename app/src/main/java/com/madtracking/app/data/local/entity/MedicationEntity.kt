@@ -30,6 +30,7 @@ data class MedicationEntity(
     val durationInDays: Int?, // Tedavi süresi (gün), null = süresiz
     val isActive: Boolean,
     val importance: String, // MedicationImportance enum as String
+    val mealRelation: String = "IRRELEVANT", // MealRelation enum as String
     val notes: String?,
     val stockCount: Int?,
     val createdAt: Long
