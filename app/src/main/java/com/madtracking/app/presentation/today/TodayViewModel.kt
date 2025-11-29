@@ -1,9 +1,9 @@
 package com.madtracking.app.presentation.today
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madtracking.app.domain.model.Intake
+import com.madtracking.app.domain.model.MealRelation
 import com.madtracking.app.domain.model.Medication
 import com.madtracking.app.domain.repository.MedicationRepository
 import com.madtracking.app.domain.repository.ProfileRepository
@@ -24,23 +24,23 @@ class TodayViewModel @Inject constructor(
     private val markIntakeMissedUseCase: MarkIntakeMissedUseCase,
     private val medicationRepository: MedicationRepository,
     private val profileRepository: ProfileRepository,
-    private val reminderScheduler: ReminderScheduler,
-    savedStateHandle: SavedStateHandle
+    private val reminderScheduler: ReminderScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TodayUiState())
     val uiState: StateFlow<TodayUiState> = _uiState.asStateFlow()
 
-    private val profileId: Long? = savedStateHandle.get<String>("profileId")?.toLongOrNull()
+    private var currentProfileId: Long? = null
 
     // İlaç bilgilerini cache'lemek için
     private val medicationCache = mutableMapOf<Long, Medication>()
 
-    init {
-        profileId?.let { id ->
-            loadProfileName(id)
-            loadTodayIntakes(id)
-        }
+    fun loadIntakes(profileId: Long) {
+        if (currentProfileId == profileId) return // Already loaded
+        currentProfileId = profileId
+        
+        loadProfileName(profileId)
+        loadTodayIntakes(profileId)
     }
 
     private fun loadProfileName(profileId: Long) {
@@ -88,7 +88,7 @@ class TodayViewModel @Inject constructor(
             status = intake.status,
             remainingDays = medication?.remainingDays(today),
             isExpired = medication?.isExpired(today) ?: false,
-            mealRelation = medication?.mealRelation ?: com.madtracking.app.domain.model.MealRelation.IRRELEVANT
+            mealRelation = medication?.mealRelation ?: MealRelation.IRRELEVANT
         )
     }
 
@@ -127,6 +127,9 @@ class TodayViewModel @Inject constructor(
     }
 
     fun refresh() {
-        profileId?.let { loadTodayIntakes(it) }
+        currentProfileId?.let { 
+            currentProfileId = null // Force reload
+            loadIntakes(it) 
+        }
     }
 }

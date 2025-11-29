@@ -1,6 +1,5 @@
 package com.madtracking.app.presentation.addmedication
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madtracking.app.domain.model.*
@@ -17,14 +16,17 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddMedicationViewModel @Inject constructor(
-    private val addMedicationUseCase: AddMedicationUseCase,
-    savedStateHandle: SavedStateHandle
+    private val addMedicationUseCase: AddMedicationUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddMedicationUiState())
     val uiState: StateFlow<AddMedicationUiState> = _uiState.asStateFlow()
 
-    private val profileId: Long = savedStateHandle.get<String>("profileId")?.toLongOrNull() ?: 0L
+    private var profileId: Long = 0L
+
+    fun setProfileId(id: Long) {
+        profileId = id
+    }
 
     fun onNameChange(name: String) {
         _uiState.update { it.copy(name = name) }

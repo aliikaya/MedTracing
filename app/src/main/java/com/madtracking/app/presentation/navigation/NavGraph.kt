@@ -6,10 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.madtracking.app.presentation.addmedication.AddMedicationScreen
-import com.madtracking.app.presentation.history.MedicationHistoryScreen
+import com.madtracking.app.presentation.main.MainScreen
 import com.madtracking.app.presentation.profiles.ProfilesScreen
-import com.madtracking.app.presentation.today.TodayScreen
 
 @Composable
 fun NavGraph(
@@ -20,62 +18,30 @@ fun NavGraph(
         navController = navController,
         startDestination = startDestination
     ) {
-        // Profiller ekranı
+        // Profiller ekranı (başlangıç noktası)
         composable(Screen.Profiles.route) {
             ProfilesScreen(
                 onProfileClick = { profileId ->
-                    navController.navigate(Screen.Today.createRoute(profileId))
+                    navController.navigate(Screen.Main.createRoute(profileId))
                 },
                 onAddProfile = {
-                    // Şimdilik basit - ileride AddProfileScreen'e yönlendir
+                    // Şimdilik basit - AddProfileScreen'e yönlendir
                 }
             )
         }
 
-        // Bugünkü ilaçlar ekranı
+        // Ana ekran (bottom nav ile)
         composable(
-            route = Screen.Today.route,
+            route = Screen.Main.route,
             arguments = listOf(
-                navArgument("profileId") { type = NavType.StringType }
+                navArgument("profileId") { type = NavType.LongType }
             )
-        ) {
-            TodayScreen(
+        ) { backStackEntry ->
+            val profileId = backStackEntry.arguments?.getLong("profileId") ?: 0L
+            MainScreen(
+                profileId = profileId,
                 onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToAddMedication = { profileId ->
-                    navController.navigate(Screen.AddMedication.createRoute(profileId))
-                },
-                onNavigateToMedicationHistory = { medicationId ->
-                    navController.navigate(Screen.MedicationHistory.createRoute(medicationId))
-                }
-            )
-        }
-
-        // İlaç ekleme ekranı
-        composable(
-            route = Screen.AddMedication.route,
-            arguments = listOf(
-                navArgument("profileId") { type = NavType.StringType }
-            )
-        ) {
-            AddMedicationScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // İlaç geçmişi ekranı
-        composable(
-            route = Screen.MedicationHistory.route,
-            arguments = listOf(
-                navArgument("medicationId") { type = NavType.StringType }
-            )
-        ) {
-            MedicationHistoryScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
+                    navController.popBackStack(Screen.Profiles.route, inclusive = false)
                 }
             )
         }

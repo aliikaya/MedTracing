@@ -3,6 +3,10 @@ package com.madtracking.app.presentation.navigation
 sealed class Screen(val route: String) {
     data object Profiles : Screen("profiles")
     
+    data object Main : Screen("main/{profileId}") {
+        fun createRoute(profileId: Long): String = "main/$profileId"
+    }
+    
     data object Today : Screen("today/{profileId}") {
         fun createRoute(profileId: Long): String = "today/$profileId"
     }

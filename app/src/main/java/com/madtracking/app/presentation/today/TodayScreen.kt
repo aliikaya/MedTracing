@@ -1,69 +1,108 @@
 package com.madtracking.app.presentation.today
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.madtracking.app.domain.model.IntakeStatus
 import com.madtracking.app.domain.model.MealRelation
+import com.madtracking.app.ui.components.*
+import com.madtracking.app.ui.theme.StatusMissed
+import com.madtracking.app.ui.theme.StatusTaken
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToAddMedication: (Long) -> Unit,
+    profileId: Long,
+    onNavigateToAddMedication: () -> Unit,
     onNavigateToMedicationHistory: (Long) -> Unit,
     viewModel: TodayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val listState = rememberLazyListState()
+    
+    // FAB visibility based on scroll
+    val showFab by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 || 
+            listState.firstVisibleItemScrollOffset < 100
+        }
+    }
+    
+    LaunchedEffect(profileId) {
+        viewModel.loadIntakes(profileId)
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Column {
-                        Text("Bugünkü İlaçlar")
-                        if (uiState.profileName.isNotEmpty()) {
-                            Text(
-                                text = uiState.profileName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+            // Gradient Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.surface
                             )
+                        )
+                    )
+            ) {
+                TopAppBar(
+                    title = { 
+                        Column {
+                            Text(
+                                text = "Bugün",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (uiState.profileName.isNotEmpty()) {
+                                Text(
+                                    text = uiState.profileName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Geri")
-                    }
-                }
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent
+                    )
+                )
+            }
         },
         floatingActionButton = {
-            uiState.profileId?.let { profileId ->
-                FloatingActionButton(
-                    onClick = { onNavigateToAddMedication(profileId) }
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "İlaç Ekle")
-                }
-            }
+            AnimatedFAB(
+                onClick = onNavigateToAddMedication,
+                visible = showFab,
+                icon = Icons.Default.Add,
+                contentDescription = "İlaç Ekle"
+            )
         }
     ) { paddingValues ->
         Box(
@@ -95,38 +134,47 @@ fun TodayScreen(
                     }
                 }
                 uiState.items.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Bugün için planlanmış ilaç yok.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "İlaç eklemek için + butonuna basın.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    EmptyState(
+                        icon = "💊",
+                        title = "Bugün için planlanmış ilaç yok",
+                        subtitle = "İlaç eklemek için aşağıdaki butona tıklayın",
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
+                        state = listState,
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.items, key = { it.intakeId }) { item ->
-                            IntakeCard(
-                                item = item,
-                                timeFormatter = timeFormatter,
-                                onMarkTaken = { viewModel.onMarkTaken(item.intakeId) },
-                                onMarkMissed = { viewModel.onMarkMissed(item.intakeId) },
-                                onNavigateToHistory = { onNavigateToMedicationHistory(item.medicationId) }
+                        // Özet kartı
+                        item {
+                            TodaySummaryCard(
+                                total = uiState.items.size,
+                                taken = uiState.items.count { it.status == IntakeStatus.TAKEN },
+                                missed = uiState.items.count { it.status == IntakeStatus.MISSED }
                             )
+                        }
+                        
+                        itemsIndexed(
+                            items = uiState.items,
+                            key = { _, item -> item.intakeId }
+                        ) { index, item ->
+                            AnimatedListItem(index = index) {
+                                ModernIntakeCard(
+                                    item = item,
+                                    timeFormatter = timeFormatter,
+                                    onMarkTaken = { viewModel.onMarkTaken(item.intakeId) },
+                                    onMarkMissed = { viewModel.onMarkMissed(item.intakeId) },
+                                    onNavigateToHistory = { onNavigateToMedicationHistory(item.medicationId) }
+                                )
+                            }
+                        }
+                        
+                        // FAB için boşluk
+                        item {
+                            Spacer(modifier = Modifier.height(72.dp))
                         }
                     }
                 }
@@ -136,165 +184,260 @@ fun TodayScreen(
 }
 
 @Composable
-private fun IntakeCard(
-    item: TodayIntakeUi,
-    timeFormatter: DateTimeFormatter,
-    onMarkTaken: () -> Unit,
-    onMarkMissed: () -> Unit,
-    onNavigateToHistory: () -> Unit
+private fun TodaySummaryCard(
+    total: Int,
+    taken: Int,
+    missed: Int
 ) {
-    val cardColors = when (item.status) {
-        IntakeStatus.TAKEN -> CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-        IntakeStatus.MISSED -> CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
-        else -> CardDefaults.cardColors()
-    }
-
+    val remaining = total - taken - missed
+    val progress = if (total > 0) taken.toFloat() / total else 0f
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = cardColors
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                Text(
+                    text = "Bugünkü İlerleme",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "$taken / $total",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            LinearProgressIndicator(
+                progress = progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                SummaryStatItem(
+                    value = "$remaining",
+                    label = "Bekliyor",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                SummaryStatItem(
+                    value = "$taken",
+                    label = "Alındı",
+                    color = StatusTaken
+                )
+                SummaryStatItem(
+                    value = "$missed",
+                    label = "Kaçırıldı",
+                    color = StatusMissed
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryStatItem(
+    value: String,
+    label: String,
+    color: androidx.compose.ui.graphics.Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModernIntakeCard(
+    item: TodayIntakeUi,
+    timeFormatter: DateTimeFormatter,
+    onMarkTaken: () -> Unit,
+    onMarkMissed: () -> Unit,
+    onNavigateToHistory: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "card_scale"
+    )
+    
+    val elevation by animateDpAsState(
+        targetValue = if (isPressed) 2.dp else 0.dp,
+        animationSpec = tween(150),
+        label = "card_elevation"
+    )
+    
+    val cardColors = when (item.status) {
+        IntakeStatus.TAKEN -> CardDefaults.cardColors(
+            containerColor = StatusTaken.copy(alpha = 0.08f)
+        )
+        IntakeStatus.MISSED -> CardDefaults.cardColors(
+            containerColor = StatusMissed.copy(alpha = 0.08f)
+        )
+        else -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    }
+
+    Card(
+        onClick = onNavigateToHistory,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale),
+        shape = RoundedCornerShape(16.dp),
+        colors = cardColors,
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+        interactionSource = interactionSource
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Saat badge
+            TimeBadge(
+                time = item.time.format(timeFormatter),
+                isHighlighted = item.status == IntakeStatus.PLANNED
+            )
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // İlaç bilgileri
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = item.medicationName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.dosageDisplay,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    // Kalan gün
+                    item.getRemainingDaysDisplay()?.let { remainingDisplay ->
                         Text(
-                            text = item.medicationName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { onNavigateToHistory() }
-                        )
-                        IconButton(
-                            onClick = onNavigateToHistory,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Geçmişi Gör",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = item.dosageDisplay,
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "•",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        // Kalan gün gösterimi
-                        item.getRemainingDaysDisplay()?.let { remainingDisplay ->
-                            Text(
-                                text = "•",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = remainingDisplay,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (item.isExpired || item.remainingDays == 0) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                }
-                            )
-                        }
-                    }
-                    // Kullanım talimatı göster (IRRELEVANT değilse)
-                    if (item.mealRelation != MealRelation.IRRELEVANT) {
                         Text(
-                            text = "📋 ${item.mealRelation.toDisplayText()}",
+                            text = remainingDisplay,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
+                            color = if (item.isExpired || item.remainingDays == 0)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.primary
                         )
                     }
                 }
                 
-                Text(
-                    text = item.time.format(timeFormatter),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = when (item.status) {
-                        IntakeStatus.TAKEN -> MaterialTheme.colorScheme.primary
-                        IntakeStatus.MISSED -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Status ve aksiyonlar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Status badge
-                val statusText = when (item.status) {
-                    IntakeStatus.PLANNED -> "⏰ Bekliyor"
-                    IntakeStatus.TAKEN -> "✅ Alındı"
-                    IntakeStatus.MISSED -> "❌ Kaçırıldı"
-                    IntakeStatus.SKIPPED -> "⏭️ Atlandı"
+                // Kullanım talimatı
+                if (item.mealRelation != MealRelation.IRRELEVANT) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "📋 ${item.mealRelation.toDisplayText()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
                 }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when (item.status) {
-                        IntakeStatus.TAKEN -> MaterialTheme.colorScheme.primary
-                        IntakeStatus.MISSED -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-
-                // Aksiyon butonları (sadece PLANNED durumunda göster)
-                if (item.status == IntakeStatus.PLANNED) {
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Status veya aksiyonlar
+            when (item.status) {
+                IntakeStatus.PLANNED -> {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilledTonalButton(
+                        FilledIconButton(
                             onClick = onMarkMissed,
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = StatusMissed.copy(alpha = 0.15f),
+                                contentColor = StatusMissed
+                            ),
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                contentDescription = "Kaçırdım",
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Kaçırdım")
                         }
                         
-                        Button(onClick = onMarkTaken) {
+                        FilledIconButton(
+                            onClick = onMarkTaken,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = StatusTaken,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
                             Icon(
                                 Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                contentDescription = "Aldım",
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Aldım")
                         }
                     }
+                }
+                else -> {
+                    StatusChip(status = item.status)
                 }
             }
         }

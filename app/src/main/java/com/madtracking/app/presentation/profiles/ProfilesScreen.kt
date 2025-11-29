@@ -1,19 +1,29 @@
 package com.madtracking.app.presentation.profiles
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.madtracking.app.ui.components.AnimatedListItem
+import com.madtracking.app.ui.components.EmptyState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,12 +37,34 @@ fun ProfilesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profiller") }
+                title = { 
+                    Column {
+                        Text(
+                            text = "MadTracking",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "İlaç Takip Uygulaması",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
-                Icon(Icons.Default.Add, contentDescription = "Profil Ekle")
+            ExtendedFloatingActionButton(
+                onClick = { viewModel.showAddDialog() },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Profil Ekle")
             }
         }
     ) { paddingValues ->
@@ -48,14 +80,6 @@ fun ProfilesScreen(
                     )
                 }
                 uiState.error != null -> {
-                    Text(
-                        text = "Hata: ${uiState.error}",
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp)
-                    )
-                }
-                uiState.profiles.isEmpty() -> {
                     Column(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -63,15 +87,47 @@ fun ProfilesScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Henüz profil yok",
-                            style = MaterialTheme.typography.titleLarge
+                            text = "Hata: ${uiState.error}",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                uiState.profiles.isEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "👋",
+                            style = MaterialTheme.typography.displayLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Hoş Geldiniz!",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "İlk profilinizi eklemek için + butonuna basın",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "İlaçlarınızı takip etmek için bir profil oluşturun",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Button(
+                            onClick = { viewModel.showAddDialog() },
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("İlk Profilimi Oluştur")
+                        }
                     }
                 }
                 else -> {
@@ -80,43 +136,33 @@ fun ProfilesScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.profiles, key = { it.id }) { profile ->
-                            Card(
-                                onClick = { onProfileClick(profile.id) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = profile.avatarEmoji ?: "👤",
-                                        style = MaterialTheme.typography.headlineLarge
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = profile.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        profile.relation?.let { relation ->
-                                            Text(
-                                                text = relation,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "→",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                        item {
+                            Text(
+                                text = "Profil Seçin",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        
+                        itemsIndexed(
+                            items = uiState.profiles,
+                            key = { _, profile -> profile.id }
+                        ) { index, profile ->
+                            AnimatedListItem(index = index) {
+                                ProfileCard(
+                                    name = profile.name,
+                                    emoji = profile.avatarEmoji ?: "👤",
+                                    relation = profile.relation,
+                                    onClick = { onProfileClick(profile.id) }
+                                )
                             }
+                        }
+                        
+                        // FAB için boşluk
+                        item {
+                            Spacer(modifier = Modifier.height(72.dp))
                         }
                     }
                 }
@@ -141,6 +187,92 @@ fun ProfilesScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun ProfileCard(
+    name: String,
+    emoji: String,
+    relation: String?,
+    onClick: () -> Unit
+) {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        label = "card_scale"
+    )
+
+    Card(
+        onClick = {
+            pressed = true
+            onClick()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = emoji,
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                }
+            }
+            
+            // Info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                relation?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Arrow
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            kotlinx.coroutines.delay(100)
+            pressed = false
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun AddProfileDialog(
     name: String,
     emoji: String,
@@ -155,7 +287,13 @@ private fun AddProfileDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Yeni Profil") },
+        title = { 
+            Text(
+                text = "Yeni Profil",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -166,36 +304,33 @@ private fun AddProfileDialog(
                     label = { Text("İsim") },
                     placeholder = { Text("örn: Annem") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
                 )
 
                 // Emoji seçici
                 Text(
-                    text = "Avatar",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "Avatar Seçin",
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
+                
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    emojiOptions.take(6).forEach { emojiOption ->
+                    emojiOptions.forEach { emojiOption ->
                         FilterChip(
                             selected = emoji == emojiOption,
                             onClick = { onEmojiChange(emojiOption) },
-                            label = { Text(emojiOption) }
-                        )
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    emojiOptions.drop(6).forEach { emojiOption ->
-                        FilterChip(
-                            selected = emoji == emojiOption,
-                            onClick = { onEmojiChange(emojiOption) },
-                            label = { Text(emojiOption) }
+                            label = { 
+                                Text(
+                                    text = emojiOption,
+                                    style = MaterialTheme.typography.titleMedium
+                                ) 
+                            }
                         )
                     }
                 }
@@ -206,22 +341,28 @@ private fun AddProfileDialog(
                     label = { Text("İlişki (opsiyonel)") },
                     placeholder = { Text("örn: Anne, Baba, Çocuk") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = onSave,
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Kaydet")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text("İptal")
             }
-        }
+        },
+        shape = RoundedCornerShape(24.dp)
     )
 }

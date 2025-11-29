@@ -25,7 +25,7 @@ class MedicationHistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MedicationHistoryUiState())
     val uiState: StateFlow<MedicationHistoryUiState> = _uiState.asStateFlow()
 
-    private val medicationId: Long? = savedStateHandle.get<String>("medicationId")?.toLongOrNull()
+    private val medicationId: Long? = savedStateHandle.get<Long>("medicationId")
 
     // Varsayılan tarih aralığı: son 7 gün
     private val toDate: LocalDate = LocalDate.now()
