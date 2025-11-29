@@ -17,11 +17,15 @@ class IntakeRepositoryImpl @Inject constructor(
 ) : IntakeRepository {
 
     override fun getIntakesForDate(profileId: Long, date: LocalDate): Flow<List<Intake>> {
-        // Query pattern: "2024-01-15%" to match all times on that date
         val datePattern = "$date%"
         return intakeDao.getIntakesForDate(profileId, datePattern).map { entities ->
             entities.map { it.toDomain() }
         }
+    }
+
+    override suspend fun getIntakesForDateOnce(profileId: Long, date: LocalDate): List<Intake> {
+        val datePattern = "$date%"
+        return intakeDao.getIntakesForDateOnce(profileId, datePattern).map { it.toDomain() }
     }
 
     override fun getIntakesForMedication(medicationId: Long): Flow<List<Intake>> {
@@ -32,6 +36,20 @@ class IntakeRepositoryImpl @Inject constructor(
 
     override suspend fun addIntake(intake: Intake): Long {
         return intakeDao.insert(intake.toEntity())
+    }
+
+    override suspend fun addIntakes(intakes: List<Intake>) {
+        intakeDao.insertAll(intakes.map { it.toEntity() })
+    }
+
+    override suspend fun getIntakeByMedicationAndTime(
+        medicationId: Long,
+        plannedTime: LocalDateTime
+    ): Intake? {
+        return intakeDao.getIntakeByMedicationAndTime(
+            medicationId = medicationId,
+            plannedTime = plannedTime.toString()
+        )?.toDomain()
     }
 
     override suspend fun markIntakeTaken(intakeId: Long, takenTime: LocalDateTime) {
@@ -58,4 +76,3 @@ class IntakeRepositoryImpl @Inject constructor(
         intakeDao.deleteForMedication(medicationId)
     }
 }
-

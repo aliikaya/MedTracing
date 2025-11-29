@@ -2,6 +2,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Bildirim izni (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Exact alarm izni (Android 12+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    
+    <!-- Cihaz yeniden başladığında alarmları yeniden kurmak için -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+    <!-- Arka planda çalışabilmek için -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Titreşim için -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:name=".MedTrackApplication"
         android:allowBackup="true"
@@ -10,17 +26,34 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.MadTracking"
-        tools:targetApi="31">
+        tools:targetApi="34">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.MadTracking">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- İlaç hatırlatıcı receiver -->
+        <receiver
+            android:name=".data.scheduler.IntakeReminderReceiver"
+            android:exported="false" />
+
+        <!-- Boot tamamlandığında alarmları yeniden kurmak için (ileride) -->
+        <receiver
+            android:name=".data.scheduler.BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        
     </application>
 
 </manifest>
-

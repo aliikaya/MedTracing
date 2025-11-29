@@ -23,10 +23,8 @@ data class MedicationEntity(
     val profileId: Long,
     val name: String,
     val form: String, // MedicationForm enum as String
-    val dosageAmount: Double,
-    val dosageUnit: String, // DosageUnit enum as String
+    val dosage: String, // "amount|unit" format (e.g., "1.0|TABLET")
     val scheduleTimes: String, // Comma-separated LocalTime strings (e.g., "08:00,14:00,20:00")
-    val scheduleDays: String?, // Comma-separated DayOfWeek ordinals or null for every day
     val startDate: String, // LocalDate as ISO string
     val endDate: String?, // LocalDate as ISO string or null
     val isActive: Boolean,
@@ -35,4 +33,3 @@ data class MedicationEntity(
     val stockCount: Int?,
     val createdAt: Long
 )
-

@@ -17,7 +17,7 @@ import com.madtracking.app.data.local.entity.ProfileEntity
         MedicationEntity::class,
         IntakeEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)

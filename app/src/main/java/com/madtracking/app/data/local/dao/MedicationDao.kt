@@ -15,8 +15,24 @@ interface MedicationDao {
     @Query("SELECT * FROM medications WHERE profileId = :profileId AND isActive = 1 ORDER BY createdAt DESC")
     fun getMedicationsForProfile(profileId: Long): Flow<List<MedicationEntity>>
 
+    @Query("SELECT * FROM medications WHERE profileId = :profileId AND isActive = 1 ORDER BY createdAt DESC")
+    suspend fun getMedicationsForProfileOnce(profileId: Long): List<MedicationEntity>
+
+    @Query("""
+        SELECT * FROM medications 
+        WHERE profileId = :profileId 
+        AND isActive = 1 
+        AND startDate <= :date 
+        AND (endDate IS NULL OR endDate >= :date)
+        ORDER BY createdAt DESC
+    """)
+    suspend fun getActiveMedicationsForDate(profileId: Long, date: String): List<MedicationEntity>
+
     @Query("SELECT * FROM medications WHERE id = :id")
     fun getMedicationById(id: Long): Flow<MedicationEntity?>
+
+    @Query("SELECT * FROM medications WHERE id = :id")
+    suspend fun getMedicationByIdOnce(id: Long): MedicationEntity?
 
     @Query("SELECT * FROM medications WHERE isActive = 1 ORDER BY createdAt DESC")
     fun getAllActiveMedications(): Flow<List<MedicationEntity>>

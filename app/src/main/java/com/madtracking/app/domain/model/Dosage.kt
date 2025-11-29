@@ -5,21 +5,29 @@ data class Dosage(
     val unit: DosageUnit
 ) {
     fun toDisplayString(): String {
-        return "$amount ${unit.name.lowercase()}"
+        val amountStr = if (amount == amount.toLong().toDouble()) {
+            amount.toLong().toString()
+        } else {
+            amount.toString()
+        }
+        return "$amountStr ${unit.displayName}"
+    }
+
+    fun toStorageString(): String {
+        return "$amount|${unit.name}"
     }
 
     companion object {
-        fun fromString(value: String): Dosage? {
+        fun fromStorageString(value: String): Dosage {
             return try {
-                val parts = value.split(" ")
-                if (parts.size != 2) return null
+                val parts = value.split("|")
+                if (parts.size != 2) return Dosage(1.0, DosageUnit.TABLET)
                 val amount = parts[0].toDouble()
-                val unit = DosageUnit.valueOf(parts[1].uppercase())
+                val unit = DosageUnit.fromString(parts[1])
                 Dosage(amount, unit)
             } catch (e: Exception) {
-                null
+                Dosage(1.0, DosageUnit.TABLET)
             }
         }
     }
 }
-
