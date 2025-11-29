@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.madtracking.app.presentation.addmedication.AddMedicationScreen
+import com.madtracking.app.presentation.history.MedicationHistoryScreen
 import com.madtracking.app.presentation.profiles.ProfilesScreen
 import com.madtracking.app.presentation.today.TodayScreen
 
@@ -44,6 +45,9 @@ fun NavGraph(
                 },
                 onNavigateToAddMedication = { profileId ->
                     navController.navigate(Screen.AddMedication.createRoute(profileId))
+                },
+                onNavigateToMedicationHistory = { medicationId ->
+                    navController.navigate(Screen.MedicationHistory.createRoute(medicationId))
                 }
             )
         }
@@ -56,6 +60,20 @@ fun NavGraph(
             )
         ) {
             AddMedicationScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // İlaç geçmişi ekranı
+        composable(
+            route = Screen.MedicationHistory.route,
+            arguments = listOf(
+                navArgument("medicationId") { type = NavType.StringType }
+            )
+        ) {
+            MedicationHistoryScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

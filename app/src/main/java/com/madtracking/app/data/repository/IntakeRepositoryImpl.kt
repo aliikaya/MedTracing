@@ -34,6 +34,24 @@ class IntakeRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getIntakesForMedicationAndDateRange(
+        medicationId: Long,
+        fromDate: LocalDate,
+        toDate: LocalDate
+    ): Flow<List<Intake>> {
+        // Room'da tarih karşılaştırması için ISO format kullan
+        // fromDate 00:00'dan başlar, toDate+1 00:00'a kadar (exclusive)
+        val fromDateTime = "${fromDate}T00:00:00"
+        val toDateTime = "${toDate.plusDays(1)}T00:00:00"
+        return intakeDao.getIntakesForMedicationAndDateRange(
+            medicationId = medicationId,
+            fromDate = fromDateTime,
+            toDate = toDateTime
+        ).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun addIntake(intake: Intake): Long {
         return intakeDao.insert(intake.toEntity())
     }

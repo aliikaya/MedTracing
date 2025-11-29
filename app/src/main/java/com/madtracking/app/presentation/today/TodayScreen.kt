@@ -1,5 +1,6 @@
 package com.madtracking.app.presentation.today
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +27,7 @@ import java.time.format.DateTimeFormatter
 fun TodayScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddMedication: (Long) -> Unit,
+    onNavigateToMedicationHistory: (Long) -> Unit,
     viewModel: TodayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -120,7 +123,8 @@ fun TodayScreen(
                                 item = item,
                                 timeFormatter = timeFormatter,
                                 onMarkTaken = { viewModel.onMarkTaken(item.intakeId) },
-                                onMarkMissed = { viewModel.onMarkMissed(item.intakeId) }
+                                onMarkMissed = { viewModel.onMarkMissed(item.intakeId) },
+                                onNavigateToHistory = { onNavigateToMedicationHistory(item.medicationId) }
                             )
                         }
                     }
@@ -135,7 +139,8 @@ private fun IntakeCard(
     item: TodayIntakeUi,
     timeFormatter: DateTimeFormatter,
     onMarkTaken: () -> Unit,
-    onMarkMissed: () -> Unit
+    onMarkMissed: () -> Unit,
+    onNavigateToHistory: () -> Unit
 ) {
     val cardColors = when (item.status) {
         IntakeStatus.TAKEN -> CardDefaults.cardColors(
@@ -162,11 +167,28 @@ private fun IntakeCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.medicationName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = item.medicationName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { onNavigateToHistory() }
+                        )
+                        IconButton(
+                            onClick = onNavigateToHistory,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Geçmişi Gör",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),

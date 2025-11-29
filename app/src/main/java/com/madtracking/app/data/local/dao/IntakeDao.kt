@@ -38,4 +38,17 @@ interface IntakeDao {
 
     @Query("DELETE FROM intakes WHERE medicationId = :medicationId")
     suspend fun deleteForMedication(medicationId: Long)
+
+    @Query("""
+        SELECT * FROM intakes 
+        WHERE medicationId = :medicationId 
+          AND plannedTime >= :fromDate 
+          AND plannedTime < :toDate 
+        ORDER BY plannedTime ASC
+    """)
+    fun getIntakesForMedicationAndDateRange(
+        medicationId: Long,
+        fromDate: String,
+        toDate: String
+    ): Flow<List<IntakeEntity>>
 }

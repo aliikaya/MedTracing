@@ -9,6 +9,11 @@ interface IntakeRepository {
     fun getIntakesForDate(profileId: Long, date: LocalDate): Flow<List<Intake>>
     suspend fun getIntakesForDateOnce(profileId: Long, date: LocalDate): List<Intake>
     fun getIntakesForMedication(medicationId: Long): Flow<List<Intake>>
+    fun getIntakesForMedicationAndDateRange(
+        medicationId: Long,
+        fromDate: LocalDate,
+        toDate: LocalDate
+    ): Flow<List<Intake>>
     suspend fun addIntake(intake: Intake): Long
     suspend fun addIntakes(intakes: List<Intake>)
     suspend fun getIntakeByMedicationAndTime(medicationId: Long, plannedTime: LocalDateTime): Intake?
