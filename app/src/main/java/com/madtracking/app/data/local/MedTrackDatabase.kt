@@ -3,6 +3,8 @@ package com.madtracking.app.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.madtracking.app.data.local.converter.DateTimeConverters
 import com.madtracking.app.data.local.dao.IntakeDao
 import com.madtracking.app.data.local.dao.MedicationDao
@@ -17,7 +19,7 @@ import com.madtracking.app.data.local.entity.ProfileEntity
         MedicationEntity::class,
         IntakeEntity::class
     ],
-    version = 2,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -28,6 +30,24 @@ abstract class MedTrackDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "med_track_database"
+
+        // Migration from version 1 to 2 (if needed)
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Placeholder for any v1 to v2 changes
+            }
+        }
+
+        // Migration from version 2 to 3: Add durationInDays column
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medications ADD COLUMN durationInDays INTEGER")
+            }
+        }
+
+        fun getMigrations(): Array<Migration> = arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3
+        )
     }
 }
-

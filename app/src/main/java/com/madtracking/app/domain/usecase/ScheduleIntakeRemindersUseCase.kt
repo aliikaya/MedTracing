@@ -12,6 +12,7 @@ import javax.inject.Inject
 /**
  * Bir ilaç için önümüzdeki 2 gün boyunca Intake'ler oluşturur
  * ve her biri için hatırlatıcı planlar.
+ * Duration kontrolü yaparak süresi dolmuş ilaçlar için reminder kurmaz.
  */
 class ScheduleIntakeRemindersUseCase @Inject constructor(
     private val medicationRepository: MedicationRepository,
@@ -31,8 +32,11 @@ class ScheduleIntakeRemindersUseCase @Inject constructor(
         val today = LocalDate.now()
         val endPlanDate = today.plusDays(2) // Bugün + yarın + öbür gün
 
+        // İlacın bitiş tarihini hesapla (durationInDays varsa onu kullan)
+        val calculatedEndDate = medication.endDateOrNull()
+        
         // Tarih aralığını kontrol et
-        if (medication.endDate != null && medication.endDate < today) return
+        if (calculatedEndDate != null && calculatedEndDate < today) return
 
         var currentDate = today
         while (currentDate <= endPlanDate) {
@@ -42,8 +46,14 @@ class ScheduleIntakeRemindersUseCase @Inject constructor(
                 continue
             }
             
-            // İlaç bitmişse dur
-            if (medication.endDate != null && currentDate > medication.endDate) break
+            // İlaç bitmişse dur (durationInDays veya endDate kontrolü)
+            if (calculatedEndDate != null && currentDate > calculatedEndDate) break
+
+            // Domain helper ile aktif mi kontrol et
+            if (!medication.isActiveOnDate(currentDate)) {
+                currentDate = currentDate.plusDays(1)
+                continue
+            }
 
             // Her saat için Intake oluştur ve reminder planla
             for (time in medication.schedule.timesOfDay) {
@@ -77,4 +87,3 @@ class ScheduleIntakeRemindersUseCase @Inject constructor(
         }
     }
 }
-

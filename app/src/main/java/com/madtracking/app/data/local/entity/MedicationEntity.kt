@@ -27,6 +27,7 @@ data class MedicationEntity(
     val scheduleTimes: String, // Comma-separated LocalTime strings (e.g., "08:00,14:00,20:00")
     val startDate: String, // LocalDate as ISO string
     val endDate: String?, // LocalDate as ISO string or null
+    val durationInDays: Int?, // Tedavi süresi (gün), null = süresiz
     val isActive: Boolean,
     val importance: String, // MedicationImportance enum as String
     val notes: String?,

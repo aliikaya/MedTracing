@@ -27,7 +27,8 @@ object DatabaseModule {
             MedTrackDatabase::class.java,
             MedTrackDatabase.DATABASE_NAME
         )
-            .fallbackToDestructiveMigration() // For Phase 1, simple migration strategy
+            .addMigrations(*MedTrackDatabase.getMigrations())
+            .fallbackToDestructiveMigration() // Fallback if migration fails
             .build()
     }
 
@@ -49,4 +50,3 @@ object DatabaseModule {
         return database.intakeDao()
     }
 }
-

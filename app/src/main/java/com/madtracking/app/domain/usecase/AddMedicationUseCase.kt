@@ -19,7 +19,9 @@ class AddMedicationUseCase @Inject constructor(
         // İlacı kaydet
         val medicationId = medicationRepository.addMedication(medication)
         
-        // Hatırlatıcılar açıksa, önümüzdeki 2 gün için Intake'leri oluştur ve alarm kur
+        // Hatırlatıcılar açıksa, Intake'leri oluştur ve alarm kur
+        // Eğer tedavi süresi belirtilmişse ve 30 günden kısaysa, tüm süre için planla
+        // Aksi halde sadece yakın günler için planla (2 gün)
         if (reminderScheduler.areRemindersEnabled()) {
             scheduleRemindersForMedication(
                 medicationId = medicationId,
@@ -32,7 +34,18 @@ class AddMedicationUseCase @Inject constructor(
 
     private suspend fun scheduleRemindersForMedication(medicationId: Long, medication: Medication) {
         val today = LocalDate.now()
-        val endPlanDate = today.plusDays(2)
+        
+        // İlacın bitiş tarihini hesapla (durationInDays varsa onu kullan)
+        val calculatedEndDate = medication.endDateOrNull()
+        
+        // Planlama bitiş tarihini belirle:
+        // - Eğer calculatedEndDate varsa ve yakınsa (max 30 gün), ona kadar planla
+        // - Yoksa veya çok uzaksa, sadece yakın günler için planla (2 gün)
+        val endPlanDate = if (calculatedEndDate != null && calculatedEndDate <= today.plusDays(30)) {
+            calculatedEndDate
+        } else {
+            today.plusDays(2) // Varsayılan: yakın günler
+        }
 
         var currentDate = today
         while (currentDate <= endPlanDate) {
@@ -42,8 +55,14 @@ class AddMedicationUseCase @Inject constructor(
                 continue
             }
             
-            // İlaç bitmişse dur
-            if (medication.endDate != null && currentDate > medication.endDate) break
+            // İlaç bitmişse dur (durationInDays veya endDate kontrolü)
+            if (calculatedEndDate != null && currentDate > calculatedEndDate) break
+
+            // Domain helper ile aktif mi kontrol et
+            if (!medication.isActiveOnDate(currentDate)) {
+                currentDate = currentDate.plusDays(1)
+                continue
+            }
 
             // Her saat için Intake oluştur ve reminder planla
             for (time in medication.schedule.timesOfDay) {

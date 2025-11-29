@@ -14,6 +14,7 @@ import com.madtracking.app.domain.usecase.MarkIntakeTakenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -76,13 +77,17 @@ class TodayViewModel @Inject constructor(
 
     private suspend fun mapToUiModel(intake: Intake): TodayIntakeUi {
         val medication = getMedication(intake.medicationId)
+        val today = LocalDate.now()
+        
         return TodayIntakeUi(
             intakeId = intake.id,
             medicationId = intake.medicationId,
             medicationName = medication?.name ?: "Bilinmeyen İlaç",
             dosageDisplay = medication?.dosage?.toDisplayString() ?: "",
             time = intake.plannedTime.toLocalTime(),
-            status = intake.status
+            status = intake.status,
+            remainingDays = medication?.remainingDays(today),
+            isExpired = medication?.isExpired(today) ?: false
         )
     }
 

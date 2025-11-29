@@ -54,6 +54,16 @@ class AddMedicationViewModel @Inject constructor(
         _uiState.update { it.copy(notes = notes) }
     }
 
+    fun onIndefiniteChange(isIndefinite: Boolean) {
+        _uiState.update { it.copy(isIndefinite = isIndefinite) }
+    }
+
+    fun onDurationDaysChange(days: String) {
+        // Sadece sayıları kabul et
+        val filtered = days.filter { it.isDigit() }
+        _uiState.update { it.copy(durationDays = filtered) }
+    }
+
     fun onSave() {
         val state = _uiState.value
         if (!state.isValid) {
@@ -73,6 +83,13 @@ class AddMedicationViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Duration hesapla
+                val durationInDays: Int? = if (state.isIndefinite) {
+                    null
+                } else {
+                    state.durationDays.toIntOrNull()?.takeIf { it > 0 }
+                }
+
                 val medication = Medication(
                     profileId = profileId,
                     name = state.name.trim(),
@@ -83,7 +100,8 @@ class AddMedicationViewModel @Inject constructor(
                     ),
                     schedule = MedicationSchedule(timesOfDay = times),
                     startDate = LocalDate.now(),
-                    endDate = null, // Süresiz
+                    endDate = null, // endDateOrNull() ile hesaplanacak
+                    durationInDays = durationInDays,
                     isActive = true,
                     importance = state.importance,
                     notes = state.notes.ifBlank { null }
@@ -121,4 +139,3 @@ class AddMedicationViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 }
-

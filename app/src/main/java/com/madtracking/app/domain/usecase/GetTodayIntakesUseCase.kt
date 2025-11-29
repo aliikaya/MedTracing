@@ -14,6 +14,7 @@ import javax.inject.Inject
 /**
  * Bugüne ait tüm Intake'leri getirir.
  * Eğer bir ilaç için bugüne ait Intake yoksa, schedule'a göre oluşturur.
+ * Süresi dolmuş ilaçlar için yeni Intake oluşturmaz.
  */
 class GetTodayIntakesUseCase @Inject constructor(
     private val intakeRepository: IntakeRepository,
@@ -27,6 +28,9 @@ class GetTodayIntakesUseCase @Inject constructor(
         val newIntakes = mutableListOf<Intake>()
         
         for (medication in medications) {
+            // Duration kontrolü: İlaç bu tarihte aktif mi?
+            if (!medication.isActiveOnDate(date)) continue
+            
             for (time in medication.schedule.timesOfDay) {
                 val plannedTime = LocalDateTime.of(date, time)
                 

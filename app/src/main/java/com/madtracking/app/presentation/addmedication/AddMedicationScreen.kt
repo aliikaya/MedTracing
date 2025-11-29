@@ -1,5 +1,6 @@
 package com.madtracking.app.presentation.addmedication
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -114,6 +115,15 @@ fun AddMedicationScreen(
                     singleLine = true
                 )
 
+                // Tedavi süresi bölümü
+                DurationSection(
+                    isIndefinite = uiState.isIndefinite,
+                    durationDays = uiState.durationDays,
+                    endDateDisplay = uiState.getEndDateDisplay(),
+                    onIndefiniteChange = { viewModel.onIndefiniteChange(it) },
+                    onDurationDaysChange = { viewModel.onDurationDaysChange(it) }
+                )
+
                 // Önem derecesi
                 ImportanceDropdown(
                     selectedImportance = uiState.importance,
@@ -163,6 +173,147 @@ fun AddMedicationScreen(
                     }
                 ) {
                     Text(error)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DurationSection(
+    isIndefinite: Boolean,
+    durationDays: String,
+    endDateDisplay: String,
+    onIndefiniteChange: (Boolean) -> Unit,
+    onDurationDaysChange: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Tedavi Süresi",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Süresiz seçeneği
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = isIndefinite,
+                    onClick = { onIndefiniteChange(true) }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Süresiz kullanım",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "Uzun dönem / düzenli kullanım",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Belirli süre seçeneği
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = !isIndefinite,
+                    onClick = { onIndefiniteChange(false) }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Belirli süre kullanacağım",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+
+            // Gün sayısı girişi (sadece belirli süre seçiliyse göster)
+            AnimatedVisibility(visible = !isIndefinite) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 40.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = durationDays,
+                            onValueChange = onDurationDaysChange,
+                            label = { Text("Gün sayısı") },
+                            placeholder = { Text("7") },
+                            modifier = Modifier.width(120.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                        Text(
+                            text = "gün",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    // Hızlı seçim butonları
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(5, 7, 10, 14, 21, 30).forEach { days ->
+                            FilterChip(
+                                selected = durationDays == days.toString(),
+                                onClick = { onDurationDaysChange(days.toString()) },
+                                label = { Text("$days") }
+                            )
+                        }
+                    }
+
+                    // Bitiş tarihi bilgisi
+                    if (endDateDisplay.isNotEmpty()) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("📅", style = MaterialTheme.typography.titleMedium)
+                                Column {
+                                    Text(
+                                        text = "Bitiş Tarihi",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = endDateDisplay,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -303,4 +454,3 @@ private fun MedicationImportance.toDisplayName(): String = when (this) {
     MedicationImportance.REGULAR -> "🟡 Normal"
     MedicationImportance.OPTIONAL -> "🟢 Opsiyonel"
 }
-
