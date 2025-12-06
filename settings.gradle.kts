@@ -14,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MadTracking"
+rootProject.name = "MedTracking"
 include(":app")
 

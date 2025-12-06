@@ -1,8 +1,8 @@
-# MadTracking - İlaç ve Vitamin Takip Uygulaması
+# medTracking - İlaç ve Vitamin Takip Uygulaması
 
 ## Genel Bakış
 
-MadTracking, kullanıcıların ilaç ve vitamin alımlarını takip etmelerine olanak tanıyan offline-first bir Android uygulamasıdır. Kendiniz, çocuklarınız veya yaşlı ebeveynleriniz için ilaç takibi yapabilirsiniz.
+MedTracking, kullanıcıların ilaç ve vitamin alımlarını takip etmelerine olanak tanıyan offline-first bir Android uygulamasıdır. Kendiniz, çocuklarınız veya yaşlı ebeveynleriniz için ilaç takibi yapabilirsiniz.
 
 ## Faz 1 - Proje İskeleti
 

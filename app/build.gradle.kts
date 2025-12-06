@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.madtracking.app"
+    namespace = "com.medtracking.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.madtracking.app"
+        applicationId = "com.medtracking.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
