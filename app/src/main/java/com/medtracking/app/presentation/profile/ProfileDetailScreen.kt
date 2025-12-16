@@ -9,7 +9,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import com.medtracking.app.domain.model.MemberRole
+import com.medtracking.app.presentation.share.ShareProfileBottomSheet
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +31,7 @@ fun ProfileDetailScreen(
     viewModel: ProfileDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showShareSheet by remember { mutableStateOf(false) }
     
     LaunchedEffect(profileId) {
         viewModel.loadProfile(profileId)
@@ -42,6 +46,17 @@ fun ProfileDetailScreen(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
+                },
+                actions = {
+                    // Show share button only if user is OWNER
+                    if (uiState.profile?.myRole == MemberRole.OWNER) {
+                        IconButton(onClick = { showShareSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Paylaş"
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
@@ -158,6 +173,22 @@ fun ProfileDetailScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Paylaş butonu (sadece OWNER için)
+            if (uiState.profile?.myRole == MemberRole.OWNER) {
+                Button(
+                    onClick = { showShareSheet = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Profili Paylaş")
+                }
+            }
+            
             // Profil değiştir butonu
             OutlinedButton(
                 onClick = onNavigateBack,
@@ -172,6 +203,15 @@ fun ProfileDetailScreen(
                 Text("Profil Değiştir")
             }
         }
+    }
+    
+    // Share Profile Bottom Sheet
+    if (showShareSheet && uiState.profile != null) {
+        ShareProfileBottomSheet(
+            profileId = profileId,
+            profileName = uiState.profile!!.name,
+            onDismiss = { showShareSheet = false }
+        )
     }
 }
 

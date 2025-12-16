@@ -155,6 +155,7 @@ fun ProfilesScreen(
                                     name = profile.name,
                                     emoji = profile.avatarEmoji ?: "👤",
                                     relation = profile.relation,
+                                    myRole = profile.myRole,
                                     onClick = { onProfileClick(profile.id) }
                                 )
                             }
@@ -191,6 +192,7 @@ private fun ProfileCard(
     name: String,
     emoji: String,
     relation: String?,
+    myRole: com.medtracking.app.domain.model.MemberRole?,
     onClick: () -> Unit
 ) {
     var pressed by remember { mutableStateOf(false) }
@@ -245,12 +247,32 @@ private fun ProfileCard(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                relation?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    relation?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    myRole?.let { role ->
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(role.displayName(), style = MaterialTheme.typography.labelSmall) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = when (role) {
+                                    com.medtracking.app.domain.model.MemberRole.OWNER -> MaterialTheme.colorScheme.primaryContainer
+                                    com.medtracking.app.domain.model.MemberRole.CAREGIVER_EDITOR -> MaterialTheme.colorScheme.secondaryContainer
+                                    com.medtracking.app.domain.model.MemberRole.PATIENT_MARK_ONLY -> MaterialTheme.colorScheme.tertiaryContainer
+                                    com.medtracking.app.domain.model.MemberRole.VIEWER -> MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ),
+                            modifier = Modifier.height(24.dp)
+                        )
+                    }
                 }
             }
             

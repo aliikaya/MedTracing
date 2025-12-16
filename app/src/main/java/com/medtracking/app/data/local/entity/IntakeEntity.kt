@@ -32,6 +32,10 @@ data class IntakeEntity(
     val takenTime: String?, // LocalDateTime as ISO string or null
     val status: String, // IntakeStatus enum as String
     val notes: String?,
-    val createdAt: Long
+    val createdAt: Long,
+    val remoteId: String? = null,
+    val updatedAt: Long = createdAt,
+    val isDirty: Boolean = false,
+    val isDeleted: Boolean = false
 )
 

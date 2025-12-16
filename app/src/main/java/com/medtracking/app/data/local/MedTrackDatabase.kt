@@ -19,10 +19,10 @@ import com.medtracking.app.data.local.entity.ProfileEntity
         MedicationEntity::class,
         IntakeEntity::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
-@TypeConverters(DateTimeConverters::class)
+@TypeConverters(DateTimeConverters::class, com.medtracking.app.data.local.converter.MembersConverter::class)
 abstract class MedTrackDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun medicationDao(): MedicationDao
@@ -52,10 +52,42 @@ abstract class MedTrackDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from version 6 to 7: add cloud sync columns
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE profiles ADD COLUMN remoteId TEXT")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN ownerUserId TEXT")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN isShared INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN isDirty INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE profiles ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("ALTER TABLE medications ADD COLUMN remoteId TEXT")
+                db.execSQL("ALTER TABLE medications ADD COLUMN profileRemoteId TEXT")
+                db.execSQL("ALTER TABLE medications ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE medications ADD COLUMN isDirty INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE medications ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("ALTER TABLE intakes ADD COLUMN remoteId TEXT")
+                db.execSQL("ALTER TABLE intakes ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE intakes ADD COLUMN isDirty INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE intakes ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // Migration from version 7 to 8: add membersJson for RBAC
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE profiles ADD COLUMN membersJson TEXT")
+            }
+        }
+
         fun getMigrations(): Array<Migration> = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
-            MIGRATION_5_6
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8
         )
     }
 }

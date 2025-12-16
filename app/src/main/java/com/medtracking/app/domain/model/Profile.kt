@@ -10,6 +10,16 @@ data class Profile(
     val avatarEmoji: String? = null, // Simple emoji avatar for Phase 1
     val relation: String? = null, // e.g., "Self", "Parent", "Child"
     val isActive: Boolean = true,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val remoteId: String? = null,
+    val ownerUserId: String? = null,
+    val isShared: Boolean = false,
+    val updatedAt: Long = createdAt,
+    val isDirty: Boolean = false,
+    val isDeleted: Boolean = false,
+    // Members map: uid -> role
+    val members: Map<String, MemberRole> = emptyMap(),
+    // Current user's role in this profile (computed from members + current auth user)
+    val myRole: MemberRole? = null
 )
 

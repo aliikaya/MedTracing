@@ -28,7 +28,12 @@ data class Medication(
     val mealRelation: MealRelation = MealRelation.IRRELEVANT, // Kullanım talimatı
     val notes: String? = null,
     val stockCount: Int? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val remoteId: String? = null,
+    val profileRemoteId: String? = null,
+    val updatedAt: Long = createdAt,
+    val isDirty: Boolean = false,
+    val isDeleted: Boolean = false
 ) {
     /**
      * Hesaplanmış bitiş tarihini döndürür.

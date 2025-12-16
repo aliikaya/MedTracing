@@ -53,11 +53,27 @@ class IntakeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addIntake(intake: Intake): Long {
-        return intakeDao.insert(intake.toEntity())
+        val now = System.currentTimeMillis()
+        return intakeDao.insert(
+            intake.copy(
+                updatedAt = now,
+                isDirty = true,
+                isDeleted = false
+            ).toEntity()
+        )
     }
 
     override suspend fun addIntakes(intakes: List<Intake>) {
-        intakeDao.insertAll(intakes.map { it.toEntity() })
+        val now = System.currentTimeMillis()
+        intakeDao.insertAll(
+            intakes.map {
+                it.copy(
+                    updatedAt = now,
+                    isDirty = true,
+                    isDeleted = false
+                ).toEntity()
+            }
+        )
     }
 
     override suspend fun getIntakeByMedicationAndTime(
@@ -74,7 +90,8 @@ class IntakeRepositoryImpl @Inject constructor(
         intakeDao.updateStatus(
             id = intakeId,
             status = IntakeStatus.TAKEN.name,
-            takenTime = takenTime.toString()
+            takenTime = takenTime.toString(),
+            updatedAt = System.currentTimeMillis()
         )
     }
 
@@ -82,15 +99,16 @@ class IntakeRepositoryImpl @Inject constructor(
         intakeDao.updateStatus(
             id = intakeId,
             status = IntakeStatus.MISSED.name,
-            takenTime = null
+            takenTime = null,
+            updatedAt = System.currentTimeMillis()
         )
     }
 
     override suspend fun deleteIntake(intakeId: Long) {
-        intakeDao.deleteById(intakeId)
+        intakeDao.softDeleteById(intakeId, System.currentTimeMillis())
     }
 
     override suspend fun deleteIntakesForMedication(medicationId: Long) {
-        intakeDao.deleteForMedication(medicationId)
+        intakeDao.softDeleteForMedication(medicationId, System.currentTimeMillis())
     }
 }

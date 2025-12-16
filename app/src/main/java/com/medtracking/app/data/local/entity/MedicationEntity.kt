@@ -33,5 +33,10 @@ data class MedicationEntity(
     val mealRelation: String = "IRRELEVANT", // MealRelation enum as String
     val notes: String?,
     val stockCount: Int?,
-    val createdAt: Long
+    val createdAt: Long,
+    val remoteId: String? = null,
+    val profileRemoteId: String? = null,
+    val updatedAt: Long = createdAt,
+    val isDirty: Boolean = false,
+    val isDeleted: Boolean = false
 )

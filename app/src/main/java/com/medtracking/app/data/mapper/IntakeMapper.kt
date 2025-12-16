@@ -14,7 +14,11 @@ fun IntakeEntity.toDomain(): Intake {
         takenTime = takenTime?.let { LocalDateTime.parse(it) },
         status = IntakeStatus.valueOf(status),
         notes = notes,
-        createdAt = createdAt
+        createdAt = createdAt,
+        remoteId = remoteId,
+        updatedAt = updatedAt,
+        isDirty = isDirty,
+        isDeleted = isDeleted
     )
 }
 
@@ -27,7 +31,11 @@ fun Intake.toEntity(): IntakeEntity {
         takenTime = takenTime?.toString(),
         status = status.name,
         notes = notes,
-        createdAt = createdAt
+        createdAt = createdAt,
+        remoteId = remoteId,
+        updatedAt = updatedAt,
+        isDirty = isDirty,
+        isDeleted = isDeleted
     )
 }
 

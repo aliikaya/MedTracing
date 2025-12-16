@@ -15,11 +15,24 @@ class MedicationRepositoryImpl @Inject constructor(
 ) : MedicationRepository {
 
     override suspend fun addMedication(medication: Medication): Long {
-        return medicationDao.insert(medication.toEntity())
+        val now = System.currentTimeMillis()
+        return medicationDao.insert(
+            medication.copy(
+                updatedAt = now,
+                isDirty = true,
+                isDeleted = false
+            ).toEntity()
+        )
     }
 
     override suspend fun updateMedication(medication: Medication) {
-        medicationDao.update(medication.toEntity())
+        val now = System.currentTimeMillis()
+        medicationDao.update(
+            medication.copy(
+                updatedAt = now,
+                isDirty = true
+            ).toEntity()
+        )
     }
 
     override fun getMedicationsForProfile(profileId: Long): Flow<List<Medication>> {
@@ -51,7 +64,14 @@ class MedicationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteMedication(medication: Medication) {
-        medicationDao.delete(medication.toEntity())
+        val now = System.currentTimeMillis()
+        medicationDao.update(
+            medication.copy(
+                isDeleted = true,
+                isDirty = true,
+                updatedAt = now
+            ).toEntity()
+        )
     }
 }
 

@@ -20,7 +20,12 @@ fun MedicationEntity.toDomain(): Medication {
         mealRelation = MealRelation.fromString(mealRelation),
         notes = notes,
         stockCount = stockCount,
-        createdAt = createdAt
+        createdAt = createdAt,
+        remoteId = remoteId,
+        profileRemoteId = profileRemoteId,
+        updatedAt = updatedAt,
+        isDirty = isDirty,
+        isDeleted = isDeleted
     )
 }
 
@@ -40,6 +45,11 @@ fun Medication.toEntity(): MedicationEntity {
         mealRelation = mealRelation.name,
         notes = notes,
         stockCount = stockCount,
-        createdAt = createdAt
+        createdAt = createdAt,
+        remoteId = remoteId,
+        profileRemoteId = profileRemoteId,
+        updatedAt = updatedAt,
+        isDirty = isDirty,
+        isDeleted = isDeleted
     )
 }

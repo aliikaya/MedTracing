@@ -14,6 +14,10 @@ data class Intake(
     val takenTime: LocalDateTime? = null,
     val status: IntakeStatus = IntakeStatus.PLANNED,
     val notes: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val remoteId: String? = null,
+    val updatedAt: Long = createdAt,
+    val isDirty: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
