@@ -1,11 +1,17 @@
 package com.medtracking.app.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import com.medtracking.app.MainViewModel
 import com.medtracking.app.presentation.auth.LoginScreen
 import com.medtracking.app.presentation.auth.RegisterScreen
 import com.medtracking.app.presentation.invite.HandleInviteScreen
@@ -15,8 +21,11 @@ import com.medtracking.app.presentation.profiles.ProfilesScreen
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.Login.route,
+    mainViewModel: MainViewModel = hiltViewModel()
 ) {
+    val pendingDeepLink by mainViewModel.pendingDeepLink.collectAsStateWithLifecycle()
+    
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -28,8 +37,16 @@ fun NavGraph(
                     navController.navigate(Screen.Register.route)
                 },
                 onLoginSuccess = {
-                    navController.navigate(Screen.Profiles.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                    // Pending deep link varsa oraya git, yoksa profiles'a git
+                    val deepLink = mainViewModel.consumePendingDeepLink()
+                    if (deepLink != null) {
+                        navController.navigate(deepLink) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Screen.Profiles.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -41,8 +58,16 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onRegisterSuccess = {
-                    navController.navigate(Screen.Profiles.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                    // Pending deep link varsa oraya git, yoksa profiles'a git
+                    val deepLink = mainViewModel.consumePendingDeepLink()
+                    if (deepLink != null) {
+                        navController.navigate(deepLink) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Screen.Profiles.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -80,6 +105,14 @@ fun NavGraph(
             arguments = listOf(
                 navArgument("invitationId") { type = NavType.StringType },
                 navArgument("token") { type = NavType.StringType }
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "https://medtrack.app/invite?invitationId={invitationId}&token={token}"
+                },
+                navDeepLink {
+                    uriPattern = "medtrack://invite?invitationId={invitationId}&token={token}"
+                }
             )
         ) { backStackEntry ->
             val invitationId = backStackEntry.arguments?.getString("invitationId") ?: return@composable
@@ -90,6 +123,12 @@ fun NavGraph(
                 onSuccessNavigate = {
                     navController.navigate(Screen.Profiles.route) {
                         popUpTo(Screen.Profiles.route) { inclusive = true }
+                    }
+                },
+                onLoginRequired = {
+                    // Kullanıcı authenticated değilse login'e yönlendir
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )

@@ -1,6 +1,8 @@
 package com.medtracking.app
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,9 +26,17 @@ class MainActivity : ComponentActivity() {
     
     private val mainViewModel: MainViewModel by viewModels()
     
+    // Deep link için state - onNewIntent'te güncellenecek
+    private val pendingDeepLink = mutableStateOf<String?>(null)
+    
     @SuppressLint("RememberReturnType")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // İlk intent'ten deep link'i al
+        extractInviteRoute(intent)?.let { route ->
+            pendingDeepLink.value = route
+        }
 
         // Enable edge-to-edge
         enableEdgeToEdge()
@@ -34,21 +44,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             MedTrackingTheme {
                 var showSplash by remember { mutableStateOf(true) }
+                val currentDeepLink by remember { pendingDeepLink }
                 
                 // Observe auth state
                 val authUser by mainViewModel.authState.collectAsStateWithLifecycle(initialValue = null)
-
-                // Deeplink'ten gelen davet route'u
-                val inviteRoute: String? = remember {
-                    val data = intent?.data
-                    val invitationId = data?.getQueryParameter("invitationId")
-                    val token = data?.getQueryParameter("token")
-                    if (!invitationId.isNullOrBlank() && !token.isNullOrBlank()) {
-                        Screen.Invite.createRoute(invitationId, token)
-                    } else {
-                        null
-                    }
-                }
 
                 // NavController'i en dışta oluştur
                 val navController = rememberNavController()
@@ -74,14 +73,22 @@ class MainActivity : ComponentActivity() {
                             startDestination = startDestination
                         )
 
-                        // Handle invite deep link (only if authenticated)
-                        LaunchedEffect(inviteRoute, authUser) {
-                            if (authUser != null && inviteRoute != null) {
-                                navController.navigate(inviteRoute) {
-                                    popUpTo(Screen.Profiles.route) {
-                                        inclusive = true
+                        // Handle invite deep link
+                        // Eğer kullanıcı authenticated ise direkt navigate et
+                        // Değilse MainViewModel'e pending olarak kaydet (login sonrası işlenecek)
+                        LaunchedEffect(showSplash, currentDeepLink, authUser) {
+                            val deepLink = currentDeepLink
+                            if (!showSplash && deepLink != null) {
+                                if (authUser != null) {
+                                    // Authenticated - direkt navigate et
+                                    navController.navigate(deepLink) {
+                                        launchSingleTop = true
                                     }
-                                    launchSingleTop = true
+                                    pendingDeepLink.value = null
+                                } else {
+                                    // Not authenticated - pending olarak kaydet
+                                    mainViewModel.setPendingDeepLink(deepLink)
+                                    pendingDeepLink.value = null
                                 }
                             }
                         }
@@ -89,5 +96,53 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        
+        // Yeni deep link geldiğinde handle et
+        extractInviteRoute(intent)?.let { route ->
+            pendingDeepLink.value = route
+        }
+    }
+    
+    /**
+     * Intent'ten invitation route'unu çıkarır.
+     * Query parametrelerini path parametrelerine dönüştürür.
+     * Hem https://medtrack.app/invite hem de medtrack://invite deep linklerini destekler.
+     */
+    private fun extractInviteRoute(intent: Intent?): String? {
+        val data: Uri? = intent?.data
+        if (data != null) {
+            // HTTPS deep link: https://medtrack.app/invite?invitationId=...&token=...
+            if (data.scheme == "https" && data.host == "medtrack.app") {
+                val path = data.path
+                if (path?.startsWith("/invite") == true) {
+                    val invitationId = data.getQueryParameter("invitationId")
+                    val token = data.getQueryParameter("token")
+                    if (!invitationId.isNullOrBlank() && !token.isNullOrBlank()) {
+                        return Screen.Invite.createRoute(
+                            invitationId = invitationId,
+                            token = token
+                        )
+                    }
+                }
+            }
+            
+            // Custom scheme deep link: medtrack://invite?invitationId=...&token=...
+            if (data.scheme == "medtrack" && data.host == "invite") {
+                val invitationId = data.getQueryParameter("invitationId")
+                val token = data.getQueryParameter("token")
+                if (!invitationId.isNullOrBlank() && !token.isNullOrBlank()) {
+                    return Screen.Invite.createRoute(
+                        invitationId = invitationId,
+                        token = token
+                    )
+                }
+            }
+        }
+        return null
     }
 }

@@ -65,7 +65,20 @@ class ProfileSharingRepositoryImpl @Inject constructor(
             val url = "https://medtrack.app/invite?invitationId=${invitation.id}&token=${invitation.oneTimeToken}"
             InvitationLinkResult.Success(invitationUrl = url)
         } catch (e: Exception) {
-            InvitationLinkResult.Error("Failed to create invitation: ${e.message}")
+            val errorMessage = when {
+                e.message?.contains("PERMISSION_DENIED", ignoreCase = true) == true ||
+                e.message?.contains("Firestore API", ignoreCase = true) == true ||
+                e.message?.contains("has not been used", ignoreCase = true) == true -> {
+                    "Firestore API etkin değil. Lütfen Firebase Console'da Firestore API'yi etkinleştirin."
+                }
+                e.message?.contains("network", ignoreCase = true) == true -> {
+                    "Ağ bağlantısı hatası. Lütfen internet bağlantınızı kontrol edin."
+                }
+                else -> {
+                    "Davet oluşturulamadı: ${e.message ?: "Bilinmeyen hata"}"
+                }
+            }
+            InvitationLinkResult.Error(errorMessage)
         }
     }
     
@@ -119,7 +132,7 @@ class ProfileSharingRepositoryImpl @Inject constructor(
             }
 
             val user = authDataSource.currentUser()
-                ?: return AcceptInvitationResult.Error.Unknown("User must be authenticated to accept invitation")
+                ?: return AcceptInvitationResult.Error.Unknown("Giriş yapmanız gerekiyor")
             
             remoteInvitationDataSource.markInvitationAccepted(
                 id = invitationId,
@@ -129,7 +142,19 @@ class ProfileSharingRepositoryImpl @Inject constructor(
             
             AcceptInvitationResult.Success
         } catch (e: Exception) {
-            AcceptInvitationResult.Error.Unknown(e.message ?: "Unknown error")
+            val errorMessage = when {
+                e.message?.contains("PERMISSION_DENIED", ignoreCase = true) == true ||
+                e.message?.contains("Firestore API", ignoreCase = true) == true -> {
+                    "Firestore API etkin değil. Lütfen Firebase Console'da etkinleştirin."
+                }
+                e.message?.contains("network", ignoreCase = true) == true -> {
+                    "Ağ bağlantısı hatası. İnternet bağlantınızı kontrol edin."
+                }
+                else -> {
+                    e.message ?: "Bilinmeyen hata"
+                }
+            }
+            AcceptInvitationResult.Error.Unknown(errorMessage)
         }
     }
 }
