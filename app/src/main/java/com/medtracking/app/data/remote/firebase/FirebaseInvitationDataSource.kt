@@ -56,17 +56,53 @@ class FirebaseInvitationDataSource @Inject constructor(
     }
 
     override suspend fun markInvitationAccepted(id: String, userId: String, grantRole: String) {
-        val docRef = collection.document(id)
-        val snapshot = docRef.get().await()
-        val profileId = snapshot.getString("profileId") ?: return
-
-        firestore.runBatch { batch ->
-            // Mark invitation as accepted
-            batch.update(docRef, mapOf("status" to "ACCEPTED"))
+        firestore.runTransaction { transaction ->
+            // 1. Read invitation document
+            val invitationRef = collection.document(id)
+            val invitationSnapshot = transaction.get(invitationRef)
             
-            // Add user to profile members map with their role
+            if (!invitationSnapshot.exists()) {
+                throw IllegalStateException("Invitation not found")
+            }
+            
+            // 2. Validate invitation
+            val status = invitationSnapshot.getString("status") ?: ""
+            if (status != "PENDING") {
+                throw IllegalStateException("Invitation already accepted or canceled")
+            }
+            
+            val expiresAt = invitationSnapshot.getLong("expiresAt") ?: 0L
+            val now = System.currentTimeMillis()
+            if (expiresAt > 0 && expiresAt < now) {
+                throw IllegalStateException("Invitation expired")
+            }
+            
+            val profileId = invitationSnapshot.getString("profileId")
+            if (profileId.isNullOrBlank()) {
+                throw IllegalStateException("Invalid invitation: missing profileId")
+            }
+            
+            // 3. Update invitation document
+            transaction.update(
+                invitationRef,
+                mapOf(
+                    "status" to "ACCEPTED",
+                    "acceptedByUid" to userId,
+                    "acceptedAt" to now
+                )
+            )
+            
+            // 4. Update profile document - add user to members and update timestamp
             val profileRef = profiles.document(profileId)
-            batch.update(profileRef, mapOf("members.$userId" to grantRole))
+            transaction.update(
+                profileRef,
+                mapOf(
+                    "members.$userId" to grantRole,
+                    "updatedAt" to now
+                )
+            )
+            
+            null // Transaction returns null on success
         }.await()
     }
 

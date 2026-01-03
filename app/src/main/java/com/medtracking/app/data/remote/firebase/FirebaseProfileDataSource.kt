@@ -19,19 +19,24 @@ class FirebaseProfileDataSource @Inject constructor(
     private val collection get() = firestore.collection(COLLECTION_PROFILES)
 
     override suspend fun upsertProfile(profile: RemoteProfileDto): RemoteProfileDto {
+        android.util.Log.d("FirebaseProfileDataSource", "upsertProfile called: id=${profile.id}, name='${profile.name}', ownerUserId=${profile.ownerUserId}, members=${profile.members}")
         val docRef = if (profile.id != null) {
+            android.util.Log.d("FirebaseProfileDataSource", "Updating existing profile: ${profile.id}")
             collection.document(profile.id)
         } else {
+            android.util.Log.d("FirebaseProfileDataSource", "Creating new profile")
             collection.document()
         }
 
         // Ensure owner is in members map with OWNER role
         val membersMap = if (profile.members.isEmpty() && profile.ownerUserId.isNotBlank()) {
+            android.util.Log.d("FirebaseProfileDataSource", "Members map is empty, creating with owner: ${profile.ownerUserId}")
             mapOf(profile.ownerUserId to "OWNER")
         } else {
             profile.members.toMutableMap().apply {
                 // Ensure owner always has OWNER role
                 if (profile.ownerUserId.isNotBlank() && !containsKey(profile.ownerUserId)) {
+                    android.util.Log.d("FirebaseProfileDataSource", "Adding owner to members map: ${profile.ownerUserId}")
                     put(profile.ownerUserId, "OWNER")
                 }
             }
@@ -47,8 +52,16 @@ class FirebaseProfileDataSource @Inject constructor(
             "isDeleted" to profile.isDeleted
         )
 
-        docRef.set(payload, SetOptions.merge()).await()
-        return profile.copy(id = docRef.id)
+        android.util.Log.d("FirebaseProfileDataSource", "Writing to Firestore: documentId=${docRef.id}, payload=$payload")
+        try {
+            docRef.set(payload, SetOptions.merge()).await()
+            android.util.Log.d("FirebaseProfileDataSource", "Successfully wrote to Firestore: documentId=${docRef.id}")
+            return profile.copy(id = docRef.id)
+        } catch (e: Exception) {
+            android.util.Log.e("FirebaseProfileDataSource", "Error writing to Firestore: ${e.message}", e)
+            e.printStackTrace()
+            throw e
+        }
     }
 
     override suspend fun getProfilesForUser(userId: String): List<RemoteProfileDto> {
@@ -62,6 +75,39 @@ class FirebaseProfileDataSource @Inject constructor(
             // Additional client-side filter to ensure userId is in members
             profile.members.containsKey(userId) || profile.ownerUserId == userId
         }
+    }
+
+    override suspend fun getProfileById(profileId: String): RemoteProfileDto? {
+        val snapshot = collection.document(profileId).get().await()
+        if (!snapshot.exists()) return null
+        
+        // Parse members map from Firestore
+        val membersData = snapshot.get("members")
+        val membersMap = when (membersData) {
+            is Map<*, *> -> {
+                @Suppress("UNCHECKED_CAST")
+                (membersData as Map<String, Any?>).mapValues { (_, value) ->
+                    value?.toString() ?: ""
+                }
+            }
+            is List<*> -> {
+                // Backward compatibility: convert old List format to Map
+                @Suppress("UNCHECKED_CAST")
+                (membersData as List<String>).associateWith { "VIEWER" }
+            }
+            else -> emptyMap<String, String>()
+        }
+        
+        return RemoteProfileDto(
+            id = snapshot.id,
+            name = snapshot.getString("name").orEmpty(),
+            ownerUserId = snapshot.getString("ownerUserId").orEmpty(),
+            members = membersMap,
+            createdAt = snapshot.getLong("createdAt") ?: 0L,
+            updatedAt = snapshot.getLong("updatedAt") ?: 0L,
+            isShared = snapshot.getBoolean("isShared") ?: false,
+            isDeleted = snapshot.getBoolean("isDeleted") ?: false
+        )
     }
 
     override fun observeProfilesForUser(userId: String): Flow<List<RemoteProfileDto>> = callbackFlow {

@@ -117,6 +117,9 @@ fun NavGraph(
         ) { backStackEntry ->
             val invitationId = backStackEntry.arguments?.getString("invitationId") ?: return@composable
             val token = backStackEntry.arguments?.getString("token") ?: return@composable
+            // #region agent log
+            android.util.Log.d("NavGraph", "HandleInviteScreen composable called with invitationId=$invitationId, token=${token.take(20)}")
+            // #endregion
             HandleInviteScreen(
                 invitationId = invitationId,
                 token = token,

@@ -18,9 +18,11 @@ class ProfileRepositoryImpl @Inject constructor(
     override suspend fun upsertProfile(profile: Profile): Long {
         val now = System.currentTimeMillis()
         val currentUser = authDataSource.currentUser()
+        android.util.Log.d("ProfileRepository", "upsertProfile called: name='${profile.name}', ownerUserId=${profile.ownerUserId}, currentUser=${currentUser?.uid}")
         
         // Set ownerUserId if not already set (new profile)
         val profileWithOwner = if (profile.ownerUserId.isNullOrBlank() && currentUser != null) {
+            android.util.Log.d("ProfileRepository", "Setting ownerUserId to currentUser.uid: ${currentUser.uid}")
             profile.copy(
                 ownerUserId = currentUser.uid,
                 // Initialize members map with owner as OWNER
@@ -30,6 +32,7 @@ class ProfileRepositoryImpl @Inject constructor(
                 isDeleted = false
             )
         } else {
+            android.util.Log.d("ProfileRepository", "Profile already has ownerUserId or no currentUser")
             profile.copy(
                 updatedAt = now,
                 isDirty = true,
@@ -37,7 +40,11 @@ class ProfileRepositoryImpl @Inject constructor(
             )
         }
         
-        return profileDao.upsert(profileWithOwner.toEntity())
+        val entity = profileWithOwner.toEntity()
+        android.util.Log.d("ProfileRepository", "Entity created: id=${entity.id}, name='${entity.name}', ownerUserId=${entity.ownerUserId}, isDirty=${entity.isDirty}, membersJson=${entity.membersJson}")
+        val result = profileDao.upsert(entity)
+        android.util.Log.d("ProfileRepository", "Profile saved to Room DB with id: $result")
+        return result
     }
 
     override fun getProfiles(): Flow<List<Profile>> {

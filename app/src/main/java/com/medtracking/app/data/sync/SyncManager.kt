@@ -53,13 +53,16 @@ class SyncManager @Inject constructor(
      * Should be called once from Application.onCreate.
      */
     fun start() {
+        android.util.Log.d("SyncManager", "SyncManager.start() called")
         scope.launch {
             authRepository.observeAuthState().collectLatest { authUser ->
                 if (authUser != null) {
                     // User logged in - start sync
+                    android.util.Log.d("SyncManager", "Auth state: User logged in, uid: ${authUser.uid}")
                     startSync(authUser.uid)
                 } else {
                     // User logged out - stop sync
+                    android.util.Log.d("SyncManager", "Auth state: User logged out")
                     stopSync()
                 }
             }
@@ -67,19 +70,25 @@ class SyncManager @Inject constructor(
     }
 
     private fun startSync(userId: String) {
+        android.util.Log.d("SyncManager", "startSync called for userId: $userId")
         // Cancel any existing sync job
         syncJob?.cancel()
         observedProfileRemoteIds.clear()
 
         syncJob = scope.launch {
+            android.util.Log.d("SyncManager", "Sync job started for userId: $userId")
             // Clean up any existing duplicates in local database
             cleanupDuplicateProfiles()
             
             // Launch observe job
-            launch { observeRemote(userId) }
+            launch { 
+                android.util.Log.d("SyncManager", "Starting observeRemote for userId: $userId")
+                observeRemote(userId) 
+            }
             
             // Launch periodic push job
             launch {
+                android.util.Log.d("SyncManager", "Starting periodic push job, interval: ${PUSH_INTERVAL_MS}ms")
                 while (true) {
                     pushDirty(userId)
                     delay(PUSH_INTERVAL_MS)
@@ -111,17 +120,23 @@ class SyncManager @Inject constructor(
     }
 
     private fun stopSync() {
+        android.util.Log.d("SyncManager", "stopSync called")
         syncJob?.cancel()
         syncJob = null
         observedProfileRemoteIds.clear()
+        android.util.Log.d("SyncManager", "Sync stopped")
     }
 
     private suspend fun observeRemote(userId: String) {
-        remoteProfileDataSource.observeProfilesForUser(userId).collectLatest { remoteProfiles ->
-            // Deduplicate remote profiles by ID to prevent duplicate creation
-            val uniqueRemoteProfiles = remoteProfiles.distinctBy { it.id }
-            
-            uniqueRemoteProfiles.forEach { remoteProfile ->
+        try {
+            android.util.Log.d("SyncManager", "observeRemote started for userId: $userId")
+            remoteProfileDataSource.observeProfilesForUser(userId).collectLatest { remoteProfiles ->
+                android.util.Log.d("SyncManager", "Received ${remoteProfiles.size} remote profiles from Firestore")
+                // Deduplicate remote profiles by ID to prevent duplicate creation
+                val uniqueRemoteProfiles = remoteProfiles.distinctBy { it.id }
+                android.util.Log.d("SyncManager", "After deduplication: ${uniqueRemoteProfiles.size} unique profiles")
+                
+                uniqueRemoteProfiles.forEach { remoteProfile ->
                 // First try to find by remoteId
                 var localProfile = remoteProfile.id?.let { profileDao.getProfileByRemoteId(it) }
                 
@@ -171,10 +186,15 @@ class SyncManager @Inject constructor(
 
                 val profileIdForChildren = remoteProfile.id ?: localProfile?.remoteId
                 if (profileIdForChildren != null && observedProfileRemoteIds.add(profileIdForChildren)) {
+                    android.util.Log.d("SyncManager", "Starting to observe medications and intakes for profile: $profileIdForChildren")
                     observeMedications(profileIdForChildren, userId)
                     observeIntakes(profileIdForChildren, userId)
                 }
+                }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("SyncManager", "Error in observeRemote: ${e.message}", e)
+            e.printStackTrace()
         }
     }
 
@@ -236,33 +256,83 @@ class SyncManager @Inject constructor(
     }
 
     private suspend fun pushDirty(userId: String) {
-        val dirtyProfiles = profileDao.getDirtyProfiles()
-        dirtyProfiles.forEach { pushProfile(it, userId) }
+        try {
+            android.util.Log.d("SyncManager", "pushDirty called for userId: $userId")
+            val dirtyProfiles = profileDao.getDirtyProfiles()
+            android.util.Log.d("SyncManager", "Found ${dirtyProfiles.size} dirty profiles")
+            
+            dirtyProfiles.forEach { profile ->
+                try {
+                    android.util.Log.d("SyncManager", "Pushing profile: name='${profile.name}', id=${profile.id}, remoteId=${profile.remoteId}, ownerUserId=${profile.ownerUserId}, isDirty=${profile.isDirty}, membersJson=${profile.membersJson}")
+                    pushProfile(profile, userId)
+                    android.util.Log.d("SyncManager", "Successfully pushed profile: ${profile.name}")
+                } catch (e: Exception) {
+                    android.util.Log.e("SyncManager", "Error pushing profile '${profile.name}': ${e.message}", e)
+                    e.printStackTrace()
+                }
+            }
 
-        val dirtyMedications = medicationDao.getDirtyMedications()
-        dirtyMedications.forEach { medication ->
-            val profile = profileDao.getProfileByIdOnce(medication.profileId)
-            val profileRemoteId = profile?.remoteId ?: return@forEach
-            pushMedication(medication, profileRemoteId, userId)
-        }
+            val dirtyMedications = medicationDao.getDirtyMedications()
+            android.util.Log.d("SyncManager", "Found ${dirtyMedications.size} dirty medications")
+            dirtyMedications.forEach { medication ->
+                try {
+                    val profile = profileDao.getProfileByIdOnce(medication.profileId)
+                    val profileRemoteId = profile?.remoteId ?: run {
+                        android.util.Log.w("SyncManager", "Skipping medication ${medication.id}: profile not found or no remoteId")
+                        return@forEach
+                    }
+                    pushMedication(medication, profileRemoteId, userId)
+                } catch (e: Exception) {
+                    android.util.Log.e("SyncManager", "Error pushing medication ${medication.id}: ${e.message}", e)
+                    e.printStackTrace()
+                }
+            }
 
-        val dirtyIntakes = intakeDao.getDirtyIntakes()
-        dirtyIntakes.forEach { intake ->
-            val profile = profileDao.getProfileByIdOnce(intake.profileId)
-            val profileRemoteId = profile?.remoteId ?: return@forEach
-            pushIntake(intake, profileRemoteId, userId)
+            val dirtyIntakes = intakeDao.getDirtyIntakes()
+            android.util.Log.d("SyncManager", "Found ${dirtyIntakes.size} dirty intakes")
+            dirtyIntakes.forEach { intake ->
+                try {
+                    val profile = profileDao.getProfileByIdOnce(intake.profileId)
+                    val profileRemoteId = profile?.remoteId ?: run {
+                        android.util.Log.w("SyncManager", "Skipping intake ${intake.id}: profile not found or no remoteId")
+                        return@forEach
+                    }
+                    pushIntake(intake, profileRemoteId, userId)
+                } catch (e: Exception) {
+                    android.util.Log.e("SyncManager", "Error pushing intake ${intake.id}: ${e.message}", e)
+                    e.printStackTrace()
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SyncManager", "Error in pushDirty: ${e.message}", e)
+            e.printStackTrace()
         }
     }
 
     private suspend fun pushProfile(profile: ProfileEntity, currentUserId: String) {
-        val remote = profile.toRemoteDto(currentUserId)
-        val remoteResult = remoteProfileDataSource.upsertProfile(remote)
-        profileDao.upsert(
-            profile.copy(
+        try {
+            android.util.Log.d("SyncManager", "pushProfile started: name='${profile.name}', id=${profile.id}, ownerUserId=${profile.ownerUserId}, membersJson=${profile.membersJson}, currentUserId=$currentUserId")
+            
+            val remote = profile.toRemoteDto(currentUserId)
+            android.util.Log.d("SyncManager", "toRemoteDto completed: id=${remote.id}, ownerUserId=${remote.ownerUserId}, members=${remote.members}, name=${remote.name}")
+            
+            android.util.Log.d("SyncManager", "Calling remoteProfileDataSource.upsertProfile...")
+            val remoteResult = remoteProfileDataSource.upsertProfile(remote)
+            android.util.Log.d("SyncManager", "upsertProfile completed: remoteId=${remoteResult.id}")
+            
+            val updatedProfile = profile.copy(
                 remoteId = remoteResult.id ?: profile.remoteId,
                 isDirty = false
             )
-        )
+            android.util.Log.d("SyncManager", "Updating local profile with remoteId: ${updatedProfile.remoteId}, isDirty: ${updatedProfile.isDirty}")
+            profileDao.upsert(updatedProfile)
+            android.util.Log.d("SyncManager", "Profile saved successfully: name='${profile.name}', remoteId=${updatedProfile.remoteId}")
+        } catch (e: Exception) {
+            android.util.Log.e("SyncManager", "Error in pushProfile for '${profile.name}': ${e.message}", e)
+            android.util.Log.e("SyncManager", "Exception type: ${e.javaClass.simpleName}")
+            e.printStackTrace()
+            throw e // Re-throw to be caught by pushDirty
+        }
     }
 
     private suspend fun pushMedication(

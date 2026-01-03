@@ -14,7 +14,9 @@ data class RemoteInvitationDto(
     val grantRole: String = "VIEWER", // Role to grant on acceptance
     val status: String = "PENDING",
     val createdAt: Long = 0L,
-    val expiresAt: Long = 0L
+    val expiresAt: Long = 0L,
+    val acceptedByUid: String? = null,
+    val acceptedAt: Long? = null
 )
 
 

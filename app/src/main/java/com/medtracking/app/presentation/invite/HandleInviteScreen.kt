@@ -10,6 +10,26 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.medtracking.app.MainViewModel
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+// #region agent log
+private fun logDebug(location: String, data: Map<String, Any?>) {
+    val dataStr = data.entries.joinToString(", ") { "${it.key}=${it.value}" }
+    android.util.Log.d("DebugLog", "$location: $dataStr")
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            val logFile = File("/Users/alikaya/Projeler/MadTracking/.cursor/debug.log")
+            val logLine = "{\"timestamp\":${System.currentTimeMillis()},\"location\":\"$location\",\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"message\":\"Debug log\",\"data\":{$dataStr}}\n"
+            logFile.appendText(logLine)
+        } catch (e: Exception) {
+            android.util.Log.e("DebugLog", "Error writing log file: ${e.message}")
+        }
+    }
+}
+// #endregion
 
 @Composable
 fun HandleInviteScreen(
@@ -25,19 +45,56 @@ fun HandleInviteScreen(
     
     var hasAttemptedAccept by remember { mutableStateOf(false) }
 
+    // #region agent log
+    LaunchedEffect(invitationId, token) {
+        logDebug("HandleInviteScreen.init", mapOf(
+            "invitationId" to invitationId,
+            "token" to token.take(20)
+        ))
+    }
+    // #endregion
+
     // Auth durumunu kontrol et
     LaunchedEffect(authUser, invitationId, token) {
+        // #region agent log
+        logDebug("HandleInviteScreen.LaunchedEffect.authCheck", mapOf(
+            "authUser" to (authUser?.uid ?: "null"),
+            "hasAttemptedAccept" to hasAttemptedAccept,
+            "invitationId" to invitationId
+        ))
+        // #endregion
         if (authUser != null && !hasAttemptedAccept) {
             // Authenticated - daveti kabul et
             hasAttemptedAccept = true
+            // #region agent log
+            logDebug("HandleInviteScreen.acceptInvitation.calling", mapOf(
+                "invitationId" to invitationId,
+                "token" to token.take(20)
+            ))
+            // #endregion
             viewModel.acceptInvitation(invitationId, token)
         }
     }
 
     LaunchedEffect(state) {
+        // #region agent log
+        logDebug("HandleInviteScreen.LaunchedEffect.state", mapOf(
+            "state" to state.javaClass.simpleName,
+            "isSuccess" to (state is InviteUiState.Success),
+            "isError" to (state is InviteUiState.Error),
+            "errorMessage" to (if (state is InviteUiState.Error) (state as InviteUiState.Error).message else null)
+        ))
+        // #endregion
         if (state is InviteUiState.Success) {
-            // Başarılı - biraz bekle ve yönlendir
-            kotlinx.coroutines.delay(1500)
+            // Başarılı - Firestore sync için bekle ve yönlendir
+            // Firestore'da profile güncellenmesi + snapshot listener'ın tetiklenmesi + local DB'ye yazılması için yeterli süre
+            // #region agent log
+            logDebug("HandleInviteScreen.Success.waiting", mapOf("delay" to 3500))
+            // #endregion
+            kotlinx.coroutines.delay(3500)
+            // #region agent log
+            logDebug("HandleInviteScreen.Success.navigating", mapOf())
+            // #endregion
             onSuccessNavigate()
         }
     }
